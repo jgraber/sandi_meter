@@ -2,6 +2,7 @@
 require 'mixlib/cli'
 require 'sandi_meter/file_scanner'
 require 'sandi_meter/formatter'
+require 'sandi_meter/rules_checker'
 require 'sandi_meter/logger'
 require 'sandi_meter/version'
 require 'sandi_meter/html_generator'
@@ -61,6 +62,18 @@ module SandiMeter
       cli = CommandParser.new
       cli.parse_options
 
+      if cli.config[:graph]
+        log_dir_path = File.join(cli.config[:path], 'sandi_meter')
+        FileUtils.mkdir(log_dir_path) unless Dir.exists?(log_dir_path)
+        # put ignore file
+        ignore_file_path = File.join(cli.config[:path], 'sandi_meter', '.sandi_meter')
+        if File.directory?(cli.config[:path]) && !File.exists?(ignore_file_path)
+          File.open(ignore_file_path, "w") do |file|
+            file.write %w(db vendor).join("\n")
+          end
+        end
+      end
+
       if cli.config[:version]
         # stolen from gem 'bubs' :)
         puts "SandiMeter ".tr('A-Za-z1-90', 'Ⓐ-Ⓩⓐ-ⓩ①-⑨⓪').split('').join(' ') + SandiMeter::VERSION
@@ -81,27 +94,25 @@ module SandiMeter
 
       if cli.config[:graph]
         if File.directory?(cli.config[:path])
-          logger = SandiMeter::Logger.new
-          logger.log!(cli.config[:path], data)
+          logger = SandiMeter::Logger.new(data)
+          logger.log!(cli.config[:path])
 
           html_generator = SandiMeter::HtmlGenerator.new
           html_generator.copy_assets!(cli.config[:path])
           html_generator.generate_data!(cli.config[:path])
           html_generator.generate_details!(cli.config[:path], data)
 
-          # put ignore file
-          ignore_file_path = File.join(cli.config[:path], 'sandi_meter', '.sandi_meter')
-          if File.directory?(cli.config[:path]) && !File.exists?(ignore_file_path)
-            File.open(ignore_file_path, "w") do |file|
-              file.write %w(db vendor).join("\n")
-            end
-          end
-
           index_html_path = File.join(cli.config[:path], 'sandi_meter/index.html')
           system "open #{index_html_path}"
         else
           puts "WARNING!!! HTML mode works only if you scan folder."
         end
+      end
+
+      if RulesChecker.new(data).ok?
+        exit 0
+      else
+        exit 1
       end
     end
 
