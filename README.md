@@ -17,6 +17,7 @@ gem install sandi_meter
 sandi_meter --help
     -d, --details                    CLI mode. Show details (path, line number)
     -g, --graph                      HTML mode. Create folder, log data and output stats to HTML file.
+        --json                       Output as JSON
     -l, --log                        Show syntax error and indentation log output
     -p, --path PATH                  Path to folder or file to analyze (default is ".")
     -r, --rules                      Show rules
@@ -37,7 +38,7 @@ Classes with 100+ lines
   SandiMeter::HtmlGenerator  | 135   | ./lib/sandi_meter/html_generator.rb:5
   Valera                     | 109   | ./spec/test_classes/12.rb:1
 
-Missindented classes
+Misindented classes
   Class name        | Path
   MyApp::TestClass  | ./spec/test_classes/1.rb:2
   OneLinerClass     | ./spec/test_classes/5.rb:1
@@ -47,7 +48,7 @@ Methods with 5+ lines
   SandiMeter::Analyzer                | initialize                    | 10    | ./lib/sandi_meter/analyzer.rb:10
   SandiMeter::Analyzer                | analyze                       | 13    | ./lib/sandi_meter/analyzer.rb:22
 
-Missindented methods
+Misindented methods
   Class name        | Method name  | Path
   MyApp::TestClass  | blah         | ./spec/test_classes/1.rb:3
 
@@ -65,8 +66,8 @@ Controllers with 1+ instance variables
 
 Try using gem with `-g (--graph)` option, so it will create a folder with beautiful html output and log file with results of any scan.
 
-![SandiMeter HTML mode pie charts](http://imageshack.us/a/img823/7653/hns3.png)
-![SandiMeter HTML mode details](http://imageshack.us/a/img820/8711/bygo.png)
+![SandiMeter HTML mode pie charts](http://cl.ly/image/1p142M3K1S2x/content)
+![SandiMeter HTML mode details](http://cl.ly/image/2R163v283V3Q/content)
 
 Add ignore files and folders in `sandi_meter/.sandi_meter` file.
 
