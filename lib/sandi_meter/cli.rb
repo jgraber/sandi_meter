@@ -9,6 +9,7 @@ require 'sandi_meter/version'
 require 'sandi_meter/html_generator'
 require 'yaml'
 require 'json'
+require 'launchy'
 
 module SandiMeter
   class CommandParser
@@ -19,6 +20,11 @@ module SandiMeter
       long: "--path PATH",
       description: "Path to folder or file to analyze",
       default: "."
+
+    option :output_path,
+      short: "-o PATH",
+      long: "--output-path PATH",
+      description: "Path for storing generated output files (default: ./sandi_meter/)"
 
     option :log,
       short: "-l",
@@ -36,6 +42,12 @@ module SandiMeter
       short: "-g",
       long: "--graph",
       description: "HTML mode. Create folder, log data and output stats to HTML file.",
+      boolean: true
+
+    option :quiet,
+      short: "-q",
+      long: "--quiet",
+      description: "Do not open HTML report for graph option in browser.",
       boolean: true
 
     option :version,
@@ -63,6 +75,12 @@ module SandiMeter
       long: "--json",
       description: "Output as JSON",
       boolean: false
+
+    option :rule_thresholds,
+      short: "-t THRESHOLD",
+      long: "--thresholds THRESHOLD",
+      description: "Thresholds for each rule (default: 90,90,90,90) or in config.yml",
+      default: "90,90,90,90"
   end
 
   class CLI
@@ -71,12 +89,15 @@ module SandiMeter
         cli = CommandParser.new
         cli.parse_options
 
-        if cli.config[:graph]
-          log_dir_path = File.join(cli.config[:path], 'sandi_meter')
-          FileUtils.mkdir(log_dir_path) unless Dir.exists?(log_dir_path)
+        cli.config[:output_path] ||= File.expand_path(File.join(cli.config[:path], 'sandi_meter'))
 
-          create_config_file(cli.config[:path], 'sandi_meter/.sandi_meter', %w(db vendor).join("\n"))
-          create_config_file(cli.config[:path], 'sandi_meter/config.yml', YAML.dump({ threshold: 90 }))
+        cli.config[:rule_thresholds] = cli.config[:rule_thresholds].split(",").map(&:to_i)
+
+        if cli.config[:graph]
+          FileUtils.mkdir_p(cli.config[:output_path]) unless Dir.exists?(cli.config[:output_path])
+
+          create_config_file(cli.config[:output_path], '.sandi_meter', %w(db vendor).join("\n"))
+          create_config_file(cli.config[:output_path], 'config.yml', YAML.dump({ thresholds: [90, 90, 90, 90] }))
         end
 
         if cli.config[:version]
@@ -101,27 +122,29 @@ module SandiMeter
         formatter.print_data(data)
 
         if cli.config[:graph]
-          if File.directory?(cli.config[:path])
+          if File.directory?(cli.config[:output_path])
             logger = SandiMeter::Logger.new(data)
-            logger.log!(cli.config[:path])
+            logger.log!(cli.config[:output_path])
 
             html_generator = SandiMeter::HtmlGenerator.new
-            html_generator.copy_assets!(cli.config[:path])
-            html_generator.generate_data!(cli.config[:path])
-            html_generator.generate_details!(cli.config[:path], data)
+            html_generator.copy_assets!(cli.config[:output_path])
+            html_generator.generate_data!(cli.config[:output_path])
+            html_generator.generate_details!(cli.config[:output_path], data)
 
-            index_html_path = File.join(cli.config[:path], 'sandi_meter/index.html')
-            system "open #{index_html_path}"
+            index_html_path = File.join(cli.config[:output_path], 'index.html')
+            unless cli.config[:quiet]
+              open_in_browser(index_html_path)
+            end
           else
             puts "WARNING!!! HTML mode works only if you scan folder."
           end
         end
 
-        config_file_path = File.join(cli.config[:path], 'sandi_meter', 'config.yml')
+        config_file_path = File.join(cli.config[:output_path], 'config.yml')
         config =  if File.exists?(config_file_path)
                     YAML.load(File.read(config_file_path))
                   else
-                    { threshold: 90 }
+                    { thresholds: cli.config[:rule_thresholds] }
                   end
 
         if RulesChecker.new(data, config).ok?
@@ -153,6 +176,10 @@ module SandiMeter
       def version_info
         # stolen from gem 'bubs' :)
         "SandiMeter ".tr('A-Za-z1-90', 'Ⓐ-Ⓩⓐ-ⓩ①-⑨⓪').split('').join(' ') + SandiMeter::VERSION
+      end
+
+      def open_in_browser(url)
+        Launchy.open(url)
       end
     end
   end

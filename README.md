@@ -7,7 +7,7 @@ Static analysis tool for checking your Ruby code for [Sandi Metz' four rules](ht
 * 100 lines per class
 * 5 lines per method
 * 4 params per method call (and don't even try cheating with hash params)
-* 1 instance variables per controller' action
+* 1 instance variable per controller action
 
 ## CLI mode
 
@@ -19,8 +19,12 @@ sandi_meter --help
     -g, --graph                      HTML mode. Create folder, log data and output stats to HTML file.
         --json                       Output as JSON
     -l, --log                        Show syntax error and indentation log output
-    -p, --path PATH                  Path to folder or file to analyze (default is ".")
+    -o, --output-path PATH           Path for storing generated output files (default: ./sandi_meter/)
+    -p, --path PATH                  Path to folder or file to analyze
+    -q, --quiet                      Do not open HTML report for graph option in browser.
+    -t, --thresholds THRESHOLD       Thresholds for each rule (default: "90,90,90,90" or in config.yml)
     -r, --rules                      Show rules
+    -v, --version                    Gem version
     -h, --help                       Help
 
 cd ~/your/ruby/or/rails/project
